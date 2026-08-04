@@ -1,0 +1,52 @@
+name: Debug
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/debug.yml'
+      - 'module/**'
+      - 'webui/**'
+      - 'update.json'
+  workflow_dispatch:
+
+env:
+  MODULE_NAME: 'bindhosts'
+
+jobs:
+  debug:
+    runs-on: ubuntu-26.04
+    outputs:
+      version_changed: ${{ env.version_changed }}
+      VERSION: ${{ env.VERSION }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+        show-progress: false
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+      with:
+        version: latest
+
+    - name: Setup Node
+      uses: actions/setup-node@v7
+      with:
+        node-version: latest
+        cache: 'pnpm'
+        cache-dependency-path: webui/pnpm-lock.yaml
+
+    - name: Build webroot
+      run: |
+        cd webui
+        pnpm install --frozen-lockfile
+        pnpm build
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.ZIP_NAME }}
+        path: 'module'
