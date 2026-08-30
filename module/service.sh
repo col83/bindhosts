@@ -39,7 +39,7 @@ bindhosts() {
 	echo "bindhosts: service.sh - mode plain bindhosts" >> /dev/kmsg 
 }
 
-apatch_hfr() {
+kernel_hostsredirect() {
 	target_hostsfile="/data/adb/hosts"
 	[ ! -f $target_hostsfile ] && {
 		cat /system/etc/hosts > $target_hostsfile
@@ -47,7 +47,7 @@ apatch_hfr() {
 		hosts_set_perm "$target_hostsfile"
 		}
 	helper_mode="| hosts_file_redirect 💉"
-	echo "bindhosts: service.sh - mode apatch_hfr" >> /dev/kmsg
+	echo "bindhosts: service.sh - mode kernel_hostsredirect" >> /dev/kmsg
 }
 
 zn_hostsredirect() {
@@ -99,7 +99,6 @@ ksu_susfs_bind_kstat() {
 ksud_kernel_umount() { 
 	mount_bind
 	/data/adb/ksud kernel umount add '/system/etc/hosts' --flags 2 > /dev/null 2>&1
-	/data/adb/ksud kernel notify-module-mounted >/dev/null 2>&1 # this way ksu will unlock umount
 	echo "bindhosts: service.sh - mode ksud_kernel_umount" >> /dev/kmsg
 }
 
@@ -109,7 +108,7 @@ case $operating_mode in
 	0) normal_mount ;;
 	1) ksu_susfs_bind ;;
 	2) bindhosts ;;
-	3) apatch_hfr ;;
+	3) kernel_hostsredirect ;;
 	4) zn_hostsredirect ;;
 	5) ksu_susfs_open_redirect ;;
 	6) ksu_source_mod ;;
@@ -119,6 +118,10 @@ case $operating_mode in
 	10) ksud_kernel_umount ;;
 	*) bindhosts ;; # catch invalid modes
 esac
+
+if [ "$KSU" = true ]; then
+	/data/adb/ksud kernel notify-module-mounted >/dev/null 2>&1
+fi
 
 ##################
 
