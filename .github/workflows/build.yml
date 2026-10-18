@@ -1,22 +1,14 @@
-name: Release
+name: Build
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/release.yml'
-      - 'module/**'
-      - 'webui/**'
-      - 'update.json'
   workflow_dispatch:
 
 env:
   MODULE_NAME: 'bindhosts'
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-26.04
     outputs:
       version_changed: ${{ env.version_changed }}
       VERSION: ${{ env.VERSION }}
@@ -59,7 +51,7 @@ jobs:
           echo -e "## ${{ env.MODULE_NAME }}\n${MODULE_DESC}\n\n---\n\n# Changelog:\n${CHANGELOG_RAW}"
           echo "EOF"
         } >> $GITHUB_ENV
-        
+
         if [ "$CURRENT_VERSION_CODE" -gt "$PREVIOUS_VERSION_CODE" ]; then
           echo "version_changed=true" >> $GITHUB_ENV
         else
@@ -72,29 +64,3 @@ jobs:
         name: ${{ env.ZIP_NAME }}
         path: 'module'
 
-    - name: Download artifact
-      if: ${{ env.version_changed == 'true' }}
-      uses: actions/download-artifact@v8
-      with:
-        name: ${{ env.ZIP_NAME }}
-        path: ${{ env.MODULE_NAME }}
-
-    - name: Zip module for release
-      if: ${{ env.version_changed == 'true' }}
-      run: |
-        cd ${{ env.MODULE_NAME }}
-        zip -r ../${{ env.MODULE_NAME }}.zip .
-        cd ..
-
-    - name: Create new release
-      if: ${{ env.version_changed == 'true' }}
-      uses: softprops/action-gh-release@v3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: "${{ env.MODULE_NAME }}.zip"
-        tag_name: "${{ env.VERSION }}"
-        name: "Release ${{ env.VERSION }}"
-        body: "${{ env.CHANGELOG }}"
-        draft: false
-        prerelease: false
